@@ -1,0 +1,2492 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf210
+\cocoascreenfonts1{\fonttbl\f0\fnil\fcharset0 LucidaGrande;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue127;\red127\green127\blue0;\red127\green0\blue127;
+\red0\green127\blue127;\red0\green127\blue0;\red255\green0\blue0;}
+{\info
+{\title modTableField}
+{\author Bernd Niggemann}
+{\*\copyright Bernd Niggemann}}\paperw11900\paperh16840\margl1440\margr1440\vieww30360\viewh20560\viewkind0
+\deftab720
+\pard\pardeftab720\qc
+
+\f0\fs30 \cf0 \
+
+\fs40 modTableField
+\fs36 \
+\
+version 0_3_3 beta\
+
+\fs30 \'a9 Bernd Niggemann 2010-2015\
+\pard\pardeftab720
+\cf0 \
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 modTableField evolved from the Basic Table Field provided by LiveCode. It is an attempt to provide a straightforward means for displaying tabular data without having to resort to the DataGrid. Which of course is a lot more powerful.\
+It displays tabular data, includes a header, sorting, alternating line colors. Column width can be set automatically to fit the content of the data. Vertical dividers can be dragged manually to change column width.\
+\
+It does not provide alignment of columns in versions of Livecode < 7.0, i.e. all columns are left aligned to the vertical dividers. (a LIveCode limit). Since Livecode 7.0 supports text alignment for columns this has been added to modTableField.\
+\
+It uses plain LiveCode and is supposed to be self-contained. Meaning you can have 2 or more of modTableFields (with different names for the widget) on one card. No front or back script. Has been developed tested against 6.6.2 and later. As of version 0_2_9 support for pre Livecode version 6.6.2 has been dropped and support for LC 7.0 has been added. Earlier versions of modTablefield do not support LC 7.0 but work in LC version < 6.6.2 Recommended is version 6.6.X or 6.7.X or 7.0.x or higher if you want to use the hidden column feature. Earlier versions work but have display problems with vertical divider after last column.\
+As of version 0_3_3 minimum version is LC 6.5 due to use of image resolve for Icons\
+\
+Data and Headers are expected to be tab-delimited, a return is end of line.\
+Tabs determine the columns a return end of a record. Data is "sanitized" on import, missing tabs are added.\
+\
+\pard\pardeftab720
+\cf0 Once loaded with data you have some options for display.\
+You can 
+\b click
+\b0  into header or data field with the control-key down adjusts the column sizes to the width of the content for all columns. Currently the maximum width of a column is set to 150 pixel, the min width to 30 pixel. You can still manually adjust the column width by dragging the vertical dividers individually once the cursor changes over a divider.\
+Click-dragging on the leftmost divider with the option-key or alt-key down sets the column width of all columns to the width of the first column.\
+Manually changing column width can be turned off with mtfAllowColumnResizing pBool, see below. This also turns off automatic column adjustment to content width by control-clicking into the data field.\
+\
+Sorting\
+clicking into a header column sorts the data by that column. Currently the code looks at the first line of data and tries to test the data of the column to decide if it is a number a date or text. If inconclusive sorting defaults to text.  The triangle displays the current sort state: pointing up means the column was sorted ascending. Clicking again into the header reverses sort order: triangle pointing down means the data has been sorted by that column descending.\
+\
+If you provide a comma-delimited list of the appropriate type of sort, sorting will use that list.\
+The sort types are those provided by LiveCode:\
+\
+\pard\pardeftab720
+\cf2 text,numeric,dateTime,systemDate,international\cf0 \
+additionally \cf2 custom,none\cf0 \
+\
+\pard\pardeftab720
+
+\b \cf0 text
+\b0  sorting ASCII text ignoring international ACII character like accented chars and umlaute.\
+
+\b international
+\b0  sorts text taking into account accented chars\
+
+\b numeric
+\b0  sorts numbers\
+
+\b dateTime
+\b0  sort english dateTime\
+
+\b systemDate
+\b0  sorts according to the date format of the computer it is run on. \
+
+\b custom
+\b0  if custom is set for a column header clicking on it will dispatch a "mtfCustomSort" message, you provide the sorting, allows for fancy sorting\
+
+\b none
+\b0  if none is set the column can not be sorted\
+\
+Sorting by clicking in the header columns is enabled/disabled by issuing mtfAllowSorting pBool\
+see below for example\
+\
+mtfSortList lets you sort a column in the order of the items of a provided list, see "mtfSortList"\
+\
+Changing existing Data manually\
+Double-Clicking on a cell opens a field for manual change of data. Return key, tab key, enter key or click outside of input field saves changes to data. A mtfDataWasChangedByUser message is sent when changed data is changed. See below for example.	\
+Tab goes to next cell, shift- tab goes to previous cell, alt-arrow keys navigate the Editor field, Shift-arrow keys do the same as Alt-arrow keys. Changing the positon of the Editor-Field saves changes of the text to the cell and triggers mtfDataWasChangedByUser. If nothing is changed nothing is saved. \
+In Livecode 6.7.x and up a column can be hidden (except first column which shows rest because of vertical divider). Navigation of the Editor for manual cell editing skips columns with widths 0.\
+\
+Using the arrow keys without modifier key navigates the text of the Editor field.\
+Currently it is not possible to extend the number of rows or columns using the Editor-Field.\
+When editing a cell and a typo occured in editing mode escape key or command-z restores original content of cell.\
+Manual data entry is enabled/diabled globaly by issuing mtfAllowCellEditing pBool. Manual data editing is also governed on a column basis by "mtfSetExcludedFromEditing" See below.\
+\
+There is also an option to display a popUp list for a column. The user can choose from a list of values. Manual data editing and popUp lists can be set for individual columns.\
+If mtfAllowCellEditing is true and "mtfSetPopUpList pColumn, pList" has been set for a column a popUp list instead of an input field opens. Navigation in list as usual: arrowKeys, scrollwheel, trackpad, etc.\
+Typing when the popUp list is up will find matches and hilite the found string in red and the displayed items are reduced to the ones that have a partial match. Backspace deletes characters from the searchstring and shows the list of partial matches (expanding the list if more matches are found). Escape-key clears the search string and restores initial list in popUp display.\
+A line has to be selected in order to change the cell upon leaving the cell. Selection of a line can be done by clicking a line or using the arrow keys. \
+Double-clicking a line selects the line and closes editing mode.\
+Hitting the return key will apply changes to the cell and leave edit mode. In popUp-list mode a line has to be selected to be applied upon return.\
+\
+\
+Performance\
+modTableField has been tested with 9 columns 5000 rows with good response\
+150 columns and 1000 rows with a bit of slugginess. Depending on your hardware your mileage may vary.\
+currently modTableField is for use on desktop systems. Not mobile.\
+Livecode 7.x.x is slower for some operations, as of 7.0.2 rc 1 for 9 columns 2500 rows still give a decent experience.\
+\
+Precaution\
+the group modTableField is locked since the sort button with the triangle moves around and changes the size of the group.\
+If you manually change size and location of the modTableField unlock it, make your changes and lock it again.\
+In case something goes wrong send "resizeControl" to group "modTableField 1" via e.g. the message box.\
+\
+If you change size and location by script a resizeControl script takes care of proper alignment/positioning. ModTableField has it's own resizeControl handler.\
+Works well with the geometry manager.\
+\
+How it is set up\
+modTableField consists basically of two fields: "fData" and "fLabels". Much of the API is just to hide some of the complexities of mTF.\
+This means you can access data directly in modTableField by addressing field "fData" of group "modTableField 1" or the same with field "fLabels". Just remember it is tab delimited data in both fields. The usual things that work for fields work for these fields too.\
+ModTableField tries its best to keep data and headers synchronized and consistent. But if you bypass it's API you are on your own.\
+That said you could easily set up a script and e.g. colorize certain cells in defined rows depending on the values of other cells in that row.\
+Colorization is maintained in sorting but is lost when data is overwritten. Custom sorts using Livecode's advanced sorting options are also easily done this way, see also mtrCustomSort message. \
+\
+modTableField_Helper \
+is a substack. It opens in palette mode. You can use it to configure many settings of modTableField, you could also use the API-calls.\
+\
+License\
+modTableField is currently free for personal and commercial use. If you use modTableField commercially I would ask you to inform me of the product(s) you use it for. The code is not locked and free for inspection. If you modify the code you have to put a notice that it is a modified version of modTableField. A notice at the top of  the script of the main group is ok.\
+\
+Feel free to mail me regarding modTableField\
+berndniggemann@me.com\page \
+\
+\
+\pard\pardeftab720
+
+\fs36 \cf0 Application Programming Interface (API)
+\fs22 \
+Commands you can direct to the modTableField group to change it.\
+\
+All examples reference group "modTableField 1". If you have only 1 modTableField on a card you can just copy\
+the whole group and paste it onto the card. If you use two modTableFields on one card you have to give them unique names.	\
+\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs28 \cf0 \ul \ulc0 Messages sent when the user clicks or navigates
+\b0\fs26 \
+\
+\pard\pardeftab720
+
+\b \cf0 \ulnone mtfHeaderItemClicked pColumnClicked, pItemContent, pGroupName
+\b0\fs24 \
+\
+mtfHeaderItemClicked will be sent when the user clicks into the header/label field.\
+3 parameters are send along: the number of the column the user clicked on, the content of the item and the long name of the group.\
+Currently these messages are use in the group script to show how they work. You can either use the handlers for your own \
+use or delete the handlers from the group script and intercept the messages e.g. at the card level.\
+\
+example\
+in e.g. card script:\
+
+\b\fs22 	on
+\b0  mtfHeaderItemClicked pColumnClicked, pItemContent, pGroupName\
+		
+\b \cf3 answer
+\b0 \cf0  \cf2 "you clicked at column"\cf0  && pColumnClicked && \cf2 "which contains"\cf0  && pItemContent\
+
+\b 	end
+\b0\fs24  mtfHeaderItemClicked\
+\
+\
+\
+
+\b\fs26 mtfDataItemClicked pColumnClicked, pLineClicked, pItemContent, pGroupName, pButtonNo, pRect
+\b0\fs24 \
+\
+mtfDataItemClicked is send when the user clicks into a data cell.\
+6 parameters are sent: the number of the column, the number of the line, the content of the cell and the long name of the group, pButtonNo is the number of the button, 1 = left button, 3 = right button, pRect is the rect of the cell where the click occurred.\ul \
+\ulnone Content of course can be empty if the cell is empty. pButtonNo can be used to display a menu on right click, pRect helps to place the menu.\
+\
+example\
+in e.g. card script\
+\pard\pardeftab720
+
+\b \cf0 	on
+\b0  mtfDataItemClicked pColumnClicked, pLineClicked, pItemContent\
+		
+\b \cf3 answer
+\b0 \cf0  \cf2 "you clicked at column"\cf0  && pColumnClicked && \cf2 "and line number"\cf0  && pLineClicked && \cf2 "which contains"\cf0  && pItemContent\
+
+\b 	end
+\b0\fs22  mtfDataItemClicked\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs26 \cf0 mtfUserChangedHilitedLine pLine
+\b0\fs24 \
+\
+mtfUserChangedHilitedLine is sent when the user changes the selected line of the data field by arrowkey navigation. pLIne is the hilitedLine after arrowKey presses, also the mtfMoveHilitedLine command will trigger the mtfUserChangedHilitedLine message to be sent.\
+\
+NOTE: the data field must have focus for the arrowKey to work. Even if a line is hilited that does not mean the field has focus. Then the user must click into the field to give it focus.\
+\
+example\
+in e.g. card script\
+\pard\pardeftab720
+
+\b \cf0 	on
+\b0  mtfUserChangedHilitedLine pLine\
+		
+\b \cf3 put
+\b0 \cf0  \cf2 "User changed hilitedLine "\cf0  & pLine && \cf4 the\cf0  \cf4 milliseconds\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 "fRes"\
+\pard\pardeftab720
+\cf0 		
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetLine"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modtablefield 1"\cf0  \cf4 with\cf0  pLine\
+ 		
+\b if
+\b0  \cf4 not\cf0  (\cf4 the\cf0  \cf4 result\cf0  \cf4 contains\cf0  \cf2 "error"\cf0 ) 
+\b then
+\b0  
+\b \cf3 put
+\b0 \cf0  cr & \cf4 the\cf0  \cf4 result\cf0  \cf4 after\cf0  \cf4 field\cf0  \cf2 "fRes"\cf0    \
+\pard\pardeftab720
+
+\b \cf0 	end
+\b0\fs22  mtfUserChangedHilitedLine\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs26 \cf0 mtfIconChanged pColumn, pRow, pCellContent, pGroupLongName
+\b0\fs22 \
+\
+mtfIconChanged is sent when the user has double-clicked an icon = image set as imageSource in a cell.\
+pColumn is the number of the column, pRow is the number of the row = line, pCellContent is the content of the cell 
+\b after
+\b0  changes were made to the content due to user action, pGroupLongID is the long name of the group from which this message originated. Useful if you want to customize mtf. Icons currently use the first byte of a cell. If the first byte = char is neither 0 or 1 then 0 or 1 will be prepended to the text of the cell. Here data is changed when using Icons. If the cell is empty its value will be set to 0 or 1.\
+\
+Note: If allowEditing for the data field  is false (not the individual exclusion of columns) Icons are not accessible to the user by double-clicking, the developer can provide a toggle mechanisme with the mtfDataItemDoubleClicked message\
+\
+example \
+e.g. in card script\
+\
+	
+\b\fs24 on
+\b0  mtfIconChanged pColumn, pRow, pCellContent, pGroupLongName\
+		   
+\b \cf3 put
+\b0 \cf0  \cf2 "a mouseDoubleUp occurred in column"\cf0  && pColumn && \cf2 "in row"\cf0  && pRow && \\\
+   			 \cf2 "the cell content is:"\cf0  && pCellContent && \cf2 "sent by group"\cf0  && pGroupLongName\
+	
+\b end
+\b0\fs22  mtfIconChanged\
+\
+\
+
+\b\fs26 mtfCustomSort pColumn, pFieldShortID, pGroupShortID, pWhichWay
+\b0\fs22 \
+\
+mtfCustomSort is sent when user clicks in column header whose sorting has been set to "custom". This allows to access the versatile custom sort of LIvecode.\
+pColumn is the column that is clicked, pFieldShortID is the short id of the field to sort (fData), pGroupShortID is the short id of the group that owns the data field, pWhichWay indicates the sort order that is given by the sort triangle in the header field. It is the way the custom sort should be carried out to be in sync with the triangle. The sort is on the lines of the data field. What you sort is up to you. Remember it is a tab-delimited field. Of course this also gives you the power to sort all kind of unwanted sorts. Here you are on your own. If you stick to sorting lines you can always restore the sort by e.g. your record number which is recommended that you always provide. But sorting data within a line will probably break your data.\
+If there is no handler to handle mtfCustomSort the sort icon will not change and the data of the column is not sorted, if there is a handler but the sort does not affect the column (keywords not contained in column) the sort triangle will toggle although nothing is sorted.\
+\
+example\
+e.g in card script of button script, see example how to forward the message in card script\
+this assumes there is low, normal or high in column 6 (priority). No easy way to sort by severity other than by a custom sort.\
+\
+
+\b 	on
+\b0  mtfCustomSort pColumn, pFieldShortID, pGroupShortID, pWhichWay\
+	   
+\b if
+\b0  pColumn = \cf2 6\cf0  
+\b then\
+
+\b0 	      
+\b if
+\b0  pWhichWay = \cf2 "ascending"\cf0  
+\b then\
+
+\b0 	         
+\b \cf3 sort
+\b0 \cf0  \cf4 lines\cf0  \cf4 of\cf0  \cf4 field\cf0  \cf5 id\cf0  pFieldShortID \cf4 of\cf0  
+\b \cf3 group
+\b0 \cf0  \cf5 id\cf0  pGroupShortID \cf4 ascending\cf0  \cf4 numeric\cf0  \cf4 by\cf0  sortPriority(\cf4 each\cf0 ,pColumn)\
+	      
+\b else\
+
+\b0  	        
+\b \cf3 sort
+\b0 \cf0  \cf4 lines\cf0  \cf4 of\cf0  \cf4 field\cf0  \cf5 id\cf0  pFieldShortID \cf4 of\cf0  
+\b \cf3 group
+\b0 \cf0  \cf5 id\cf0  pGroupShortID \cf4 descending\cf0  \cf4 numeric\cf0  \cf4 by\cf0  sortPriority(\cf4 each\cf0 ,pColumn)\
+	      
+\b end
+\b0  
+\b if\
+
+\b0 	   
+\b end
+\b0  
+\b if\
+	end
+\b0\fs20  mtfCustomSort\
+\
+\
+	
+\b\fs22 private
+\b0  
+\b function
+\b0  sortPriority pLIne, pCol\
+\pard\pardeftab720\fi720
+\cf0    
+\b \cf3 set
+\b0 \cf0  \cf4 the\cf0  \cf5 itemDelimiter\cf0  \cf4 to\cf0  \cf4 tab\
+\cf0    
+\b \cf3 put
+\b0 \cf0  \cf4 item\cf0  pCol \cf4 of\cf0  pLIne \cf4 into\cf0  tPriority\
+   
+\b switch
+\b0  tPriority\
+      
+\b case
+\b0  \cf2 "Low"\
+\cf0          
+\b \cf3 return
+\b0 \cf0  \cf2 1\
+\cf0          
+\b \cf3 break\
+
+\b0 \cf0       
+\b case
+\b0  \cf2 "Normal"\
+\cf0          
+\b \cf3 return
+\b0 \cf0  \cf2 2\
+\cf0          
+\b \cf3 break\
+
+\b0 \cf0       
+\b case
+\b0  \cf2 "High"\
+\cf0          
+\b \cf3 return
+\b0 \cf0  \cf2 3\
+\cf0          
+\b \cf3 break\
+
+\b0 \cf0       
+\b default\
+
+\b0          
+\b \cf3 return
+\b0 \cf0  \cf2 0\
+\cf0    
+\b end
+\b0  
+\b switch\
+end
+\b0  sortPriority\
+\pard\pardeftab720
+\cf0 \
+\
+\
+
+\b\fs26 mtfDataItemDoubleClicked pColumnClicked, pLineClicked, pCellContent, pGroupLongName\
+
+\b0\fs22 \
+sent when allowEditing is set to false. Sent when user doubleClicks over a cell. pColumnClicked is column number. pLineClicked is rowNumber. pCellContent is content of cell. pGroupLongName is the long name from where the message originated.\
+Usefull if the developer does not want to allow direct editing of data but wants to provide a means to selectively present a subset of the data for further processing.\
+If allowEditing is false icons are not accessible to the user by double-clicking, the developer can provide a toggle mechanisme with this message\
+\
+example\
+
+\b 	on
+\b0  mtfDataItemDoubleClicked pColumnClicked, pLineClicked, pCellContent, pGroupLongName\
+	   
+\b \cf3 put
+\b0 \cf0  \cf2 "doubleClick in "\cf0  & \cf2 "column"\cf0  &&  pColumnClicked & \cf2 " row "\cf0  &  pLineClicked & \cf4 cr\cf0  & \\\
+	         \cf2 "cell content "\cf0  &  pCellContent & \cf4 cr\cf0  & \cf2 "long name of group "\cf0  & pGroupLongName \cf4 into\cf0  \cf4 field\cf0  \cf2 "fRes"\
+
+\b \cf0 	end
+\b0  mtfDataItemDoubleClicked\
+\
+\
+\
+
+\b\fs26 mtfDataLineDoubleClicked pColumnClicked, pLineClicked, tLineContent, pGroupLongName\
+
+\b0\fs22 \
+sent when allowEditing is set to false. Sent when user doubleClicks over a line. pColumnClicked is column number. pLineClicked is rowNumber. pLineContent is content of the line in tab delimited format. pGroupLongName is the long name from where the message originated.\
+Usefull if the developer does not want to allow direct editing of data but wants to provide a means to selectively present a subset of the data for further processing.\
+\
+example\
+
+\b 	on
+\b0  mtfDataLineDoubleClicked pColumnClicked, pLineClicked, tLineContent, pGroupLongName\
+	   
+\b \cf3 put
+\b0 \cf0  \cf2 "doubleClick in "\cf0  & \cf2 "column"\cf0  &&  pColumnClicked & \cf2 " row "\cf0  &  pLineClicked & \cf4 cr\cf0  & \\\
+	    \cf2 "line content "\cf0  &  tLineContent & \cf4 cr\cf0  & \cf2 "long name of group "\cf0  & pGroupLongName \cf4 into\cf0  \cf4 field\cf0  \cf2 "fRes"\
+
+\b \cf0 	end
+\b0  mtfDataLineDoubleClicked\
+\
+\
+\
+
+\b\fs26 mtfDoubleClickInEditableCell pColumnClicked, pLineClicked, pItemContent, pShortGroupName
+\b0\fs22 \
+sent when the user double-clicks into an editable cell before the editing field opens. Useful to set e.g. a popUp-list depending on other data to let user choose from for data entry. pShortGroupName is the short name of the mtf-Group\
+If you use it to set a popUp list on the fly the new popUp list is persistent. I.e. you set a popUp-list for a column that had no popUp-list before.\
+\
+example\
+
+\b 	on
+\b0  mtfDoubleClickInEditableCell pColumnClicked, pLineClicked, pItemContent, tOwnerName\
+	   
+\b \cf6 -- use to change e.g. a popUpList on the fly depending on other values before popUp-list is shown\
+
+\b0 \cf0 	   
+\b if
+\b0  pColumnClicked = \cf2 1\cf0  
+\b then\
+
+\b0 	      
+\b \cf3 put
+\b0 \cf0  \cf2 "one,two,three,four"\cf0  \cf4 into\cf0  tPopUpOnTheFly\
+	      
+\b \cf3 replace
+\b0 \cf0  \cf4 comma\cf0  \cf4 with\cf0  \cf4 cr\cf0  \cf4 in\cf0  tPopUpOnTheFly\
+	      
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetPopUpList"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pColumnClicked, tPopUpOnTheFly\
+	   
+\b end
+\b0  
+\b if\
+	end
+\b0  mtfDoubleClickInEditableCell\
+\
+\
+\
+
+\b\fs26 mtfMouseDownRight  pColumnClicked, pRowClicked, tCellContent, pGroupName, pCellRect\
+
+\b0\fs24 sent when user right-clicks in data. Parameters indicate the column, the row, cell content, long name of mtf group and the rect of the cell where the click occured. This can be useful to show a popUp on right-click.\
+\
+\
+
+\b\fs26 mtfLineWasDragged pFromWhere, pToWhere, pLongGroupName
+\b0\fs24  \
+sent when user has dragged manually a line and reordered the data. pFromWhere is a number indicating the line number of the line dragged, pToWhere is the new line number of the dragged line. pLongGroupName is the long name of the mtf group\
+\
+\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs28 \cf0 \ul Move HilitedLine by script\
+\pard\pardeftab720
+
+\b0\fs22 \cf0 \ulnone \
+\
+
+\b\fs26 mtfMoveHilitedLIne pDirection\
+
+\b0\fs24 \
+moves hiliteLIne to next or previous line. pDirection is either prev or next. Useful when giving the user the option to move the hilitedLine by e.g a button.\
+This will resut in the mtfUserChangedHilitedLine pLine message to be dispatched.\
+When the hilitedLIne is empty = no line is hilited the first line will be selected and a mtfArrowKeyChangedLine message will be triggered.\
+\
+example\
+\pard\pardeftab720
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfMoveHilitedLIne"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0\fs22 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "next"\cf0 \
+\
+if there is a parameter error the result will contain \cf2 "error, wrong parameter. Next or Prev"\cf0 \
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs28 \cf0 \ul Message sent when the user manually changes content of a cell
+\b0\fs22 \ulnone \
+\
+\
+\pard\pardeftab720
+
+\b\fs24 \cf0 mtfDataWasChangedByUser pNewText, pOldText, pColumnClicked, pLineClicked, pGroupName\
+\
+\pard\pardeftab720
+
+\b0 \cf0 mtfDataWasChangedByUser is sent when the user changed the text of the text input field.\
+5 parameters are sent: the changed text that is saved into the cell, the original text of the cell, the number of the column clicked, the number of the line clicked and the name of the group in the form of: group "theLongNameOfGroup"\
+\
+example\
+in e.g. card script\
+
+\b\fs22 	on
+\b0  mtfDataWasChangedByUser pNewText, pOldText, pColumnClicked, pLineClicked, pGroupName\
+	      
+\b \cf3 put
+\b0 \cf0  \cf2 "User changed data in column "\cf0  &  pColumnClicked & \cf2 " and line "\cf0  & pLIneClicked & \cf4 cr\cf0  &  \cf2 "new text is "\cf0  & \cf4 quote\cf0  & pNewText \\\
+	         & \cf4 quote\cf0  & \cf2 " old text was "\cf0  & \cf4 quote\cf0  & pOldText & \cf4 quote\cf0  & \cf4 cr\cf0  & \cf4 cr\cf0  & \cf2 "in data of  "\cf0 & pGroupName \cf4 into\cf0  \cf4 field\cf0   \cf2 "fRes"\cf0  \
+	
+\b end
+\b0  mtfDataWasChangedByUser\
+\
+\
+\
+\
+\
+\
+\pard\pardeftab720\pardirnatural
+
+\b\fs28 \cf0 \ul Data Handling Commands
+\b0 \
+\pard\pardeftab720
+
+\fs24 \cf0 \ulnone \
+\
+Hint:\
+after changing data with one of the following commands you may want to adjust the widths of the columns to their content\
+by issuing\
+\pard\pardeftab720
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfAdjustToWidthOfContent"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0\fs22 \cf0  \cf2 "modTableField 1"\cf0  \
+\
+Note: LC 7.x.x is a lot slower to adjust to width of columns. Data sets with > 2500 rows will be noticeable slower to respond to mtfAdjustToWidthOfContent\
+\
+\
+\pard\pardeftab720
+
+\b \cf6 \
+\pard\pardeftab720
+
+\fs26 \cf0 mtfLoadHeaderAndData pData
+\b0\fs24 \
+loads header and data. It is assumed that the first line of the variable pData contains in tab delimited\
+format the header you choose. Line 2 to the end of pData is expected to also be tab delimited and is \
+put into the data part of the modifield table field.\
+Header and data are probed for consistency: if header has more columns than data data will get columns appended. If data has more columns than header header will get columns appended\
+\
+example:\
+\pard\pardeftab720
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfLoadHeaderAndData"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0\fs22 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs26 \cf0 mtfLoadHeader pData
+\b0\fs22 \
+loads header names. It is assumed that the first and only  line of the variable pData contains in tab delimited\
+format the header names you choose. It is put into the header field. This is what will be displayed in the header field.	\
+\
+example:\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfLoadHeader"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+
+\b\fs26 mtfLoadHeaderLabels pLabels
+\b0\fs24  \
+assigns a label to a column. A label is not visible but only an internal reference to the column. It has to be set explicitly with this command.\
+\
+pLabels is a comma delimited list of labels for the columns in the order of the columns.\
+\
+Useful if you want to address a column by an internal name, e.g. equal to the column name in a database, but you want to display a more user friendly name for the column in the header.\
+\
+example:\
+\pard\pardeftab720
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfLoadHeaderLabels"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0\fs22 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs26 \cf0 mtfLoadData pData
+\b0\fs22 \
+loads data. It is assumed that variable pData contains in tab delimited\
+format the data you choose, lines are return delimited. All the data of the variable is put into the data field.\
+When importing data is analysed to determine the maximum number of tabs in any line and fills up tabs in lines that have less than maximum.\
+\
+example:\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfLoadData"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+
+\b\fs26 mtfLoadRawData pData
+\b0\fs22 \
+loads pData without "sanitizing" it. That means data is dumped as is into the the data field. If data is not correctly formatted with regards to number of columns and tabbed data bad things can happen.\
+Mainly introduced to increase loading speed for large data sets in LC 7.x.x. You are on your own. Don't complain. If you do this on an modTableField without headers set (e.g. after reset) you may want to load headers first.\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  allMyCorrectlyFormattedData \cf4 into\cf0  tData\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfLoadRawData"\cf0  \cf4 to\cf0   
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tData\
+\
+\
+\
+
+\b\fs26 mtfAppendData pData
+\b0\fs22 \
+appends data to the the end of the data field. pData is assumed to be tab delimited within the line and lines\
+are return delimited. Obviously pData should not contain more columns than previously loaded data. Missing tabs are added to match previous data if needed.\
+\
+example:\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfAppendData"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+
+\b\fs26 mtfAppendRawData pData
+\b0\fs22 \
+appends pData without "sanitizing" it. That means data is dumped as is into the the data field. If data is not correctly formatted with regards to number of columns and tabbed data bad things can happen.\
+Mainly introduced to increase loading speed for large data sets in LC 7.x.x. You are on your own. Don't complain.\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  allMyCorrectlyFormattedData \cf4 into\cf0  tData\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfAppendRawData"\cf0  \cf4 to\cf0   
+\b \cf3 group
+\b0 \cf0  tTarget \cf4 with\cf0  tData\
+\
+\
+\
+
+\b\fs26 mtfAddEmptyLine
+\b0\fs22 \
+adds an empty line to existing data. Missing tabs are added to match previous data.\
+example\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfAddEmptyLine"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0 \
+\
+\
+\
+\
+
+\b\fs26 mtfSetCell pData, pColumn, pLIne
+\b0\fs22 \
+puts pData into column pColumn of line pLine, put empty into pData if you want an empty cell.\
+pData is one line of data without tabs. If the cell is filled mTFsetCell will overwrite it. pColumn can be the name of a column, the number of a column or the label of a colum. pLine is the line number of the cell.\
+\
+example\
+ 	
+\b \cf3 put
+\b0 \cf0  \cf2 4\cf0  \cf4 into\cf0  tColumn\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 1\cf0  \cf4 into\cf0  tLIne\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 milliseconds\cf0  \cf4 into\cf0  tData\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetCell"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tData, tColumn, tLine\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\cf0 \
+\
+the result contains "error, xxx" if pLine or pColumn are not correctly indicated, you might want to check the result for "error".\
+pLine is the currently displayed line, possibly sorted.\
+\
+\
+\
+
+\b\fs26 mtfSetSortType pData
+\b0\fs22 \
+where pData is a comma delimited list of \
+\cf2 text,numeric,dateTime,systemDate,international,custom,none\cf0 . One per column.\
+\
+
+\b text
+\b0  sorting ASCII text ignoring international ACII character like accented chars and umlaute.\
+
+\b international
+\b0  sorts text taking into account accented chars\
+
+\b numeric
+\b0  sorts numbers\
+
+\b dateTime
+\b0  sort english dateTime\
+
+\b systemDate
+\b0  sorts according to the date format of the computer it is run on\
+
+\b custom
+\b0  sends a mtfCustomSort message and the developer takes care of sorting, see mtfCustomSort\
+
+\b none
+\b0  excludes the column from sorting by clicking in the column header\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetSortType"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tSortTypes\
+\
+example for a list with 9 columns. Column 1 is numeric data, column 2 to 8 system dateTime and column 9 is international text\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "numeric,systemDate,systemDate,systemDate,systemDate,systemDate,systemDate,systemDate,international"\cf0  \cf4 into\cf0  tSortTypes\
+\
+you could also provide a list with just the columns specified that should not sort text\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "numeric"\cf0  \cf4 into\cf0  tSortTypes\
+will only sort on the first column numeric, the rest is sorted text\
+\
+
+\b Note:
+\b0  if you don't provide mtfSetSortType modTableField looks at the column in the first line of the data to try to determine the sort type. If it fails to detect a non-text format it defaults to text type sorting.\
+\
+\
+\
+\pard\pardeftab720\pardirnatural
+
+\b\fs26 \cf0 mtfGetSortType\
+\pard\pardeftab720\pardirnatural
+
+\b0\fs22 \cf0 returns a comma separated list of sort types of all columns. I no sort type has been set it will return just commas = empty items\
+\pard\pardeftab720
+\cf0 \
+example\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetSortType"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\
+\
+\cf0 \
+\
+
+\b\fs26 mtfSortColumn pColumn, pSortType, pUpDown \
+
+\b0\fs22 sorts a column by script. Works also if manual sorting by clicking into the header is disabled.\
+pColumn is either a number, a Header or a label for the column. pColumn must be indicated\
+\
+pSortType is optional and one of: \
+\
+
+\b text
+\b0  sorting ASCII text ignoring international ACII character like accented chars and umlaute.\
+
+\b international
+\b0  sorts text taking into account accented chars\
+
+\b numeric
+\b0  sorts numbers\
+
+\b dateTime
+\b0  sort english dateTime\
+
+\b systemDate
+\b0  sorts according to the date format of the computer it is run on. \
+
+\b custom
+\b0  clicking on a header column with sort type "custom" will send a mtfCustomSort messages, see above\
+
+\b none
+\b0  will prevent sorting on that column\
+\
+if pSortType is not provided modTableField first looks if mftSortType has been set for the column and uses that. Otherwise modTableField tries to determine the sortType as date, numeric or text from the first line of data, it defaults to text.\
+\
+pUpDown is optional and either "ascending" or "descending". If not provided it defaults to "ascending"\
+\
+If you want to use the sortTypes set by mtfSetSortTypes but want to do a descending sort provide an empty pSortType\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "1"\cf0  \cf4 into\cf0  pColumn\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "numeric"\cf0  \cf4 into\cf0  pSortType\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "ascending"\cf0  \cf4 into\cf0  pUpDown\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSortColumn"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pColumn, pSortType, pUpDown\
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\
+\cf0 \
+the result indicates possible errors.\
+\
+\
+\
+
+\b\fs26 mtfSortList pColumn, pLIst, pWhichWay
+\b0\fs24 \
+sorts a colum pColumn in the sort order of items provided in pList in ascending or descending way (indicated in pWichWay). This overrides any sort settings for the column, but will not change those settings e.g. allowSort or sortType. pColumn can be number, name or label of column. Internally a custom sort is used. It is intended to provide an easy way of performing a custom sort.\
+If a cell of pColumn is empty or not contained in pList it will be sorted after the items of pList when sorting ascending. Inversely when sorting descending it will be at top. The example assumes that in column 6 each record is classified according to "High,Norma,Low". A text sort would sort alphabetically ascending: High Low Normal.  To get the sort order as: Normal High Low use a list.\
+\
+example\
+
+\b\fs22 \cf3 	put
+\b0 \cf0  \cf2 6\cf0  \cf4 into\cf0  tColumn\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "Normal,High,Low"\cf0  \cf4 into\cf0  tList\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "ascending"\cf0  \cf4 into\cf0  tWhichWay\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSortList"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tColumn, tLIst, tWhichWay\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+the result indicates possible errors.\
+\
+\
+\
+
+\b\fs26 mtfSetIcons
+\b0\fs22  
+\b\fs26 pColumn, pNullName, pOneName
+\b0\fs22 \
+s
+\fs24 et Icons for a column that are images used as imageSource of text. These Icons come in pairs so the user can click on them and toggle the icons. Icons use the first char of a cell to indicate its state. If a cell is empty 1 or 0 will be filled. If a cell has content 0 or 1 will be prepended to the text. This is the only time actual data is changed. You provide the short image name i.e. just the name of the image as parameter. pNullName is the name of the image used for 0 or false state, pOneName is the name of the image that signals the 1 or true state.\
+Icons will be set on all cells of a column. At the same time the "editable" of the column will be set to false to allow double-clicks to toggle state of icon. When the user changed the state of an icon a "mtfIconChanged" message is sent. It is probably wise to use one dedicated column for an Icon, though not necessary. Please note that if you assign images as icons these images have to be around when you copy your modTableField to another stack. You might want to copy those images into group "modTableField" to be sure. Or copy them into a substack of the stack where you use modTableField. 
+\b Please read the dictionary entry concerning "Icon".
+\b0  This will explain how Livecode resolves Icon ids when looking for images used as icons or imageSource.\
+\
+
+\fs22 example\
+	  
+\b \cf3 put
+\b0 \cf0  \cf2 6\cf0  \cf4 into\cf0  pColumn\
+ 	  
+\b \cf3 put
+\b0 \cf0  \cf2 "iRed"\cf0  \cf4 into\cf0  pNullName\
+ 	  
+\b \cf3 put
+\b0 \cf0  \cf2 "iGreen"\cf0  \cf4 into\cf0  pOneName\
+  	  
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetIcons"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0   \cf4 with\cf0  pColumn, pNullName, pOneName\
+\
+the result contains possible errors (not two images referenced, images can not be found)\
+\
+\
+
+\b\fs26 mtfSetOneIcon pColumn, pRow\
+
+\b0\fs24 sets the icon for one cell in a column that has icons set. Useful if you have an empty cell that is filled afterwards and should display the icon of the rest of the column\
+\
+example\
+
+\b\fs22 \cf3 	put
+\b0 \cf0  \cf2 8\cf0  \cf4 into\cf0  pColumn\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 3\cf0  \cf4 into\cf0  pRow\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetOneIcon"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0   \cf4 with\cf0  pColumn, pRow\
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetIconToEmpty pColumn\
+
+\b0\fs22 removes icons from column pColumn, in columns set up for just icons by either only containing false or true or 0 or 1 mtfSetIconToEmpty will leave 0 or 1 in the cells. In columns where there is more text the prepended char and space will be removed and the cellls will be restored to their original content.\
+\
+example\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 8\cf0  \cf4 into\cf0  pColumn\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetIconToEmpty"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pColumn\
+\
+\
+
+\b\fs26 mtfsetIconToState pColumn, pRow, pState
+\b0\fs22 \cf2 \
+
+\fs24 \cf0 Set state of an icon of a cell by script. The column has to have Icons set for this to work, Error otherwise. pColumn is the column number, pRow is the row number = line number, pState is one of false or true or 0 or 1. Otherwise error. If pState is the current state of the icon then no change is made. No mtfIconChanged message is sent if icon was changed by script. To get the state of the icon issue a mtfGetIconState command and check the result, either 0 or 1.\
+\
+\
+
+\fs22 example\
+	   
+\b \cf3 put
+\b0 \cf0  \cf2 8\cf0  \cf4 into\cf0  pColumn\
+	   
+\b \cf3 put
+\b0 \cf0  \cf2 1\cf0  \cf4 into\cf0  pRow\
+	   
+\b \cf3 put
+\b0 \cf0  \cf2 1\cf0  \cf4 into\cf0  pState\
+	   
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfsetIconToState"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0   \cf4 with\cf0  pColumn, pRow, pState\
+\
+check result for errors\
+\
+\
+
+\b\fs26 mtfGetIconState pColumn, pRow
+\b0\fs24 \
+get state of Icon for a cell. Returns 0 or 1. The result contains either "error" and a description or the value of the state.\
+\
+example\
+
+\b\fs22 \cf3 put
+\b0 \cf0  \cf2 8\cf0  \cf4 into\cf0  pColumn\
+
+\b \cf3 put
+\b0 \cf0  \cf2 1\cf0  \cf4 into\cf0  pRow\
+
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetIconState"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0   \cf4 with\cf0  pColumn, pRow, pState\
+
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 myState\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetDisabledIconSwitch pList
+\b0\fs24 \
+Excludes a column in pList from user double-Click into Icon cell to toggle Icon. You can pass multiple columns in pList as in "2,8" disabling user-switchable for column 2 and 8. You may also pass header-names or labels as literals in pList.\
+If cell editing is set to false (mtfAllowCellEditing) for the whole data field then a user double-click will not toggle the icon regardless of mtfSetDisableIconSwitch and a mtfDataItemDoubleClicked message will be sent.\
+mtfSetIconToState is not affected by mtfSetDisabledIconSwitch i.e. you can still set the state of the icon by script.\
+\
+example\
+
+\b\fs22 \cf3 	put
+\b0 \cf0  \cf2 8\cf0  \cf4 into\cf0  pColumn\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetDisabledIconSwitch"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pList\
+	
+\b \cf3 put
+\b0\fs24 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+check result for errors\
+\
+\
+
+\b\fs26 mtfGetDisabledIconSwitch
+\b0\fs24 \
+gets a comma delimited list of columns (numbers) that are excluded from user double-Click into Icon cell to toggle Icon. If no column was excluded the list is just commas. The list is in the result.\
+\
+example\
+
+\b\fs22 \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetDisabledIconSwitch"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+	\
+
+\b\fs26 \
+mtfSetEnabledIconSwitch pList\
+
+\b0\fs24 by default user-switch is enabled when setting Icons for a column (see mtfSetIcons). You only need mtfSetEnabledIconSwitch if you excluded a column from user-switch by script or from modTablField_Helper.\
+pList is a comma delimited list with column numbers, header names or labels as in mtfSetDisabledIconSwitch. Enabling user-switch for Icons in a column has no effect when mtfAllowCellEditing for the data field is false (default is true)\
+\
+example\
+
+\b\fs22 \cf3 	put
+\b0 \cf0  \cf2 "aColor 2,Icon"\cf0  \cf4 into\cf0  pList\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetEnableIconSwitch"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pList\
+
+\b \cf3 	put
+\b0\fs24 \cf0  \cf4 the\cf0  \cf4 result\
+\cf0 \
+check the result for possible errors\
+\
+\
+
+\b\fs26 mTFGetData\
+
+\b0\fs22 gets the data of the table field in its current state as tab delimited data\
+You have to check "the result" to get the data\
+\
+example\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mTFGetData"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+\cf0   	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result into msg\cf0 \
+\
+\
+
+\b\fs26 mtfGetHeaderAndData
+\b0\fs22 \
+returns headers on line 1 and data on subsequent lines, tab-delimited\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetHeaderAndData"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+\cf0    	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+\
+
+\b\fs26 mTFShowHeader pBool\
+
+\b0\fs22 gives you the option to display modTableField with or without the header showing.\
+\
+pBool is either true or false\
+\
+example\
+	 
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mTFShowHeader"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tBool\
+\
+\
+\
+
+\b\fs26 mtfGetColumn pColumn\
+
+\b0\fs22 lets you retrieve one or more columns as a tab,tab return delimited list\
+
+\b\fs26 \
+
+\b0\fs22 where pColumn is a comma delimited list of one or more columns to retrieve.\
+\
+pColumn can indicate the columns by number\
+example\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 "1,5,9"\cf0  \cf4 into\cf0  tCollect\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetColumn"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tCollect\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\
+\cf0 will return column 1, 5 and 9 in that order as tab delimited text\
+\
+pColumn can indicate columns as header names\
+example\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 "Any,Stack,Path"\cf0  \cf4 into\cf0  tCollect\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetColumn"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tCollect\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\
+\cf0 will return column\cf2 s with name (visible in header) "Any,"Stack" and "Path"\
+\
+\cf0 pColumn can indicate columns as labels\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 "alabel 4,alabel 1,alabel 9"\cf0  \cf4 into\cf0  tCollect\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetColumn"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tCollect\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\cf0 \
+will return columns with label "alabel 4", "alabel1" and "alabel 9"\
+\
+Labels have to be set explicitly with the \cf2 "mtfLoadHeaderLabels" \cf0 command. \
+\
+The result from mTFGetColumn is either the data or an error message, e.g. if a label is asked for and the label is not referenced. (maybe not loaded)\
+Check the result for error.\
+\
+Columns can be retrieved in any order.\
+\
+\
+
+\b\fs26 mtfGetCell pColumn, pLine
+\b0\fs22 \
+retrieves the content of a cell in column pColumn and line (row) pLine\
+\
+pColumn can be either the number of the column, the header of the column or the label of the column\
+example\
+	 
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetCell"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "handler"\cf0 , \cf2 3\
+\cf0   	 
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\
+\
+\cf0 the result is either the content of the cell or an error message, e.g. \cf2 "error, unknown Header identifier"\
+\cf0 It is advised to check the result for the word "error" to catch errors\
+\
+\
+
+\b\fs26 mtfGetLine, pLine\
+
+\b0\fs22 retrieves the content of line pLine of data\
+pLine is a valid number of a line in field "fData"\
+\
+
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetLine"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modtablefield 1"\cf0  \cf4 with\cf0  pLine\
+\
+the result is either the content of the line as tab-delimited data or an error message \cf2 "error, wrong parameter or out of range"\
+\cf0 Check result for error\
+\
+\
+\
+
+\b\fs26 mtfGetHeaderLabels\
+
+\b0\fs22 the result contains the current labels of the header field as comma delimited items. Labels are non-displayed identifiers of columns. Returns empty if not set explicitly see also -> loadHeaderLabels
+\b\fs26  
+\b0\fs22 pLabels\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetHeaderLabels"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+\cf0 	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\cf0 \
+\
+\
+\
+
+\b\fs26 mtfGetHeaderNames
+\b0\fs22 \
+the result contains the names of the columns as comma separated items. Names, if set, are visible in the header field. Returns empty if names are not set.\
+Names are automatically set if you use loadHeaderAndData or loadHeader.\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetHeaderNames"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+\cf0 	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\cf0 \
+\
+\
+\
+
+\b\fs26 mtfAllowSorting pBool
+\b0\fs22 \
+toggles sorting. pBool is true or false, if false a click in a header will not sort.\
+\
+example\
+
+\b 	on
+\b0  mouseUp\
+ 	  
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf5 hilite\cf0  \cf4 of\cf0  \cf4 me\cf0  \cf4 into\cf0  pBool\
+ 	  
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfAllowSorting"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pBool\
+
+\b 	end
+\b0  mouseUp\
+\
+\
+
+\b\fs26 mtfAllowColumnResizing pBool
+\b0\fs22 \
+pBool is true or false. If true manual column resizing by dragging the vertical dividers is enabled. Also control-click into data field adjusts column widths to fit the content. Both is disabled if pBool is false\
+\
+example\
+
+\b 	on
+\b0  mouseUp\
+	   
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf5 hilite\cf0  \cf4 of\cf0  \cf4 me\cf0  \cf4 into\cf0  pBool\
+	   
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfAllowColumnResizing"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pBool\
+
+\b 	end
+\b0  mouseUp\
+\
+\
+\
+
+\b\fs26 mtfAllowCellEditing pBool\
+
+\b0\fs22 toggles cell editing. pBool is true or false. If not true cell editing is disabled\
+\
+example\
+	
+\b on
+\b0  mouseUp\
+
+\b \cf3 		put
+\b0 \cf0  \cf4 the\cf0  \cf5 hilite\cf0  \cf4 of\cf0  \cf4 me\cf0  \cf4 into\cf0  pBool\
+
+\b \cf3 		dispatch
+\b0 \cf0  \cf2 "mtfAllowCellEditing"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pBool\
+
+\b 	end
+\b0  mouseUp\
+\
+\
+
+\b\fs26 mtfAllowLineDragging pBool
+\b0\fs22 \
+allows user to Alt-Click-Drag lines to reorder them. pBool is true or false, after dragging a message is sent: mtfLineWasDragged \
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf4 true\cf0  \cf4 into\cf0  pBool\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfAllowLineDragging"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pBool\
+\
+\
+
+\b\fs26 mtfGetAllowLineDragging
+\b0\fs22 \
+returns true or false depending on whether line dragging is enabled or not\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetAllowLineDragging"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 "fRes"\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetExcludeColumnsFromEditing, pItemList
+\b0\fs22 \
+excludes columns from manual editing. After a reset of modTableField all columns are editable. pItemList is a comma delimited list of columns. Columns can be indicated by number, name or label. Errors are reported in the result. If no error occurred the result is empty, if you pass an empty pItemList the exclusions are reset to none, i.e. all columns can be manually edited. The command adds to previous exclusions.\
+\
+example\
+  	 
+\b \cf3 put
+\b0 \cf0  \cf2 "1,3,4,5,6,7,9"\cf0  \cf4 into\cf0  pItemList\
+  	 
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfExcludeColumnsFromEditing"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pItemList\
+\
+only column 2 and 8 are editable. \
+\
+
+\b\fs26 mtfGetExcludedFromEditing\
+
+\b0\fs22 returns a comma separated list of columns excluded from manual editing, if all columns can be edited the list is empty\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetExcludedFromEditing"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+\
+
+\b\fs26 mtfSetIncludeColumnsForEditing, pItemList\
+
+\b0\fs22 includes columns for editing. You only set mtfSetIncludeColumnsForEditing if you excluded them before. Default for modTableField is that all columns are user-editable. (unless mtfAllowCellEditing is set to false for modTableField which prevents all user-editing). If you pass an empty list pItemList all cells are editable (provided mtfAllowCellEditing is true). Columns can be indicated by number, name or label.\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "8"\cf0  \cf4 into\cf0  pItemList\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetIncludeColumnsForEditing"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pItemList\
+\
+\
+
+\b\fs26 mtfSetPopUpList pColumn, pList\
+
+\b0\fs22 sets a list for a column to be used in a popUp list. pColumn is the column by number, name or label. pList is a return delimited list of entries. Errors are reported in the result. If no errors occured the result is empty.\
+And yes, you have to set the lists one by one for the columns. You might want to sort the lists before passing them.\
+\
+example\
+   	
+\b \cf3 put
+\b0 \cf0  \cf2 3\cf0  \cf4 into\cf0  tColumn\
+   	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 weekdayNames\cf0  \cf4 into\cf0  tNames\
+   	
+\b repeat
+\b0  \cf4 with\cf0  i = \cf2 1\cf0  \cf4 to\cf0  \cf2 3\
+\cf0    	   
+\b \cf3 put
+\b0 \cf0  \cf4 any\cf0  \cf4 line\cf0  \cf4 of\cf0  tNames & \cf4 cr\cf0  \cf4 after\cf0  tCollect\
+   	
+\b end
+\b0  
+\b repeat\
+
+\b0    	
+\b \cf3 delete
+\b0 \cf0  \cf4 last\cf0  \cf4 char\cf0  \cf4 of\cf0  tCollect -- a return\
+   	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetPopUpList"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tColumn, tCollect\
+   	
+\b if
+\b0  \cf4 the\cf0  \cf4 result\cf0  \cf4 is\cf0  \cf4 not\cf0  \cf4 empty\cf0  
+\b then
+\b0  
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\
+\
+\cf0 sets the popUp list for column 3 to 3 weekday names\
+\
+\
+
+\b\fs26 mtfGetPopUpList pColumn\
+
+\b0\fs22 gets a return delimited list of a popUp list for a given column number, name or label.\
+If no list is set empty is returned, if the column number, name or label can not be resolved "error" is returned\
+\
+example\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 3\cf0  \cf4 into\cf0  tColumn\
+  	
+\b \cf3 dispatch
+\b0 \cf0  mtfGetPopUpList \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tColumn\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  tMyLIst\
+\
+\
+
+\b\fs26 mtfGetVersion
+\b0\fs22 \
+returns the version of the modTableField in the form "modTableField versionnumber"\
+\
+example \
+	 
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetVersion"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+\cf0  	 
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 "fRes"\cf0 \
+\
+\
+
+\b\fs26 mtfGetColNo pName\
+
+\b0\fs22 returns the column number when a header name is passed to it.\
+returns error if the header name can not be resolved to a number, e.g. name is unknown\
+useful if you want to operate on data in a column, e.g conditional colorizing \
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetColNo"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "Priority"\
+\
+\
+\
+
+\b\fs26 \cf0 mtfGetNumberOfLines
+\b0\fs22 \
+returns the number of lines of data field\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetNumberOfLines"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\
+\cf0  	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 "fRes"\cf0 \
+\
+\
+\
+
+\b\fs26 mtfResetModTableField
+\b0\fs22 \
+Clear content of header and data field. Resets sort types and header labels.\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfResetModTableField"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0 \
+\
+\
+\
+\
+\pard\pardeftab720
+
+\b\fs30 \cf0 \ul Appearance of Header and Data Field related commands
+\b0 \
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 \ulnone these are provided as a convenience, the properties could also be set manually via the Properties Inspector for field "fLabels" = header field and field "fData" = data display field.\
+\pard\pardeftab720
+\cf0 \
+\
+
+\b\fs26 mtfSetHeaderHeight pHeight
+\b0\fs22 \
+sets the height of the header field. pHeight is an integer in pixel. An attempt is made to automatically center text vertically.\
+(also triggers a resizeControl and mtfSetHeaderTextSize)\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 22\cf0  \cf4 into\cf0  pNewHeight\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetHeaderHeight"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pNewHeight\
+\
+\
+\
+
+\b\fs26 mtfSetTextFontHeaderField pWhichFont
+\b0\fs22 \cf2 \
+\cf0 set the font of the header field. pFontName is a valid font name of the current system. Passing an empty parameter in pWhichFont sets the font to empty thereby using either the system font or a font that has been set for any object in the hierarchy above, group, card or stack.\
+\
+example\cf2 \
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetTextFontHeaderField"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tFontName\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetTextFontHeaderField"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 ""\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetHeaderTextSize pTextSize
+\b0\fs22 \cf2 \
+\cf0 sets the text size of the header field. pTextSize is an integer for the textSize. An attempt is made to automatically center text vertically.\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetHeaderTextSize"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pTextSize\
+\
+\
+\
+
+\b\fs26 mtfSetTextFontDataField pWhichFont
+\b0\fs22 \
+sets the font for the data display field. pWhichFont expects a font name as provided by the fontNames. Passing an empty parameter in pWhichFont sets the font to empty thereby using either the system font or a font that has been set for any object in the hierarchy above, group, card or stack.\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetTextFontDataField"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tFontName\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetTextFontDataField"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 ""\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetTextSize pSize
+\b0\fs22 \
+sets the text size of the data field to pSize. pSize has to be  a positive integer.\
+Setting the text size of a field with fixed line height = true will change the line height i.e. the textHeight\
+When settin mtfSetTextSize is advised to also set the textHeight with "mtfSetTextHeight" to keep the line height of your choice.\
+If you set the line height to a different value than before you have to issue a "mtfMakeBackgroundPattern" \
+command since the background pattern is fit to the line height. \
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetTextSize"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+
+\b\fs26 mtfSetTextHeight pSize
+\b0\fs22 \
+sets the text height of data field to pSize. pSize has to be a positive integer.\
+If you set the text height (= line height) to a different value than before you have to issue a "mtfMakeBackgroundPattern" \
+command since the background pattern is fit to the line height.\
+\
+example\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetTextHeight"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+
+\b\fs26 mtfSetTextShift pAmount
+\b0\fs22 \
+to lift the text above the baseline you use text shift. To move text up use negative integers or zero\
+Only negative integers or zero are accepted. The amount of textShift useful depends on the font size and line height\
+Try between - 3 for small line height up to - 10 or more for very large line height, i.e. > 30\
+Note: sometimes LiveCode set a textShift to appear smaller than initially set ???\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetTextShift"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  myVar\
+\
+\
+\
+
+\b\fs26 mtfShowHorizontalDividers pBool
+\b0\fs24 \
+\pard\pardeftab720\pardirnatural
+\cf0 to turn horizontal dividers on or off send "true" or "false" to the group. Other values are rejected\
+\pard\pardeftab720
+\cf0 \
+example\
+
+\b\fs22 \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfShowHorizontalDividers"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pBool\
+\
+\
+\
+
+\b\fs26 mtfSetVerticalScrollbar pBool
+\b0\fs24  \
+if pBool is false the vertical scrollbar is hidden all times, if pBool is true the vertical scrollbar is shown all the time\
+\
+example\
+
+\b\fs22 \cf3 	put
+\b0 \cf0  \cf4 false\cf0  \cf4 into\cf0  pBool\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetVerticalScrollbar"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0\fs24 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  pBool\
+\
+\
+\
+
+\b\fs26 mtfGetVerticalScrollbar
+\b0\fs22  \
+returns a boolean to indicate if vertical scrollbar is always hidden (false)  or always shown not (true)\
+\
+example\
+
+\b \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetVerticalScrollbar"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+	
+\b \cf3 put
+\b0\fs24 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetHorizontalScrollbar pBool 
+\b0\fs22 \
+if pBool is false horizontal scrollbar is hidden allways, regardless of content of data field, if pBool is true then the horizontal scrollbar is shown depending on conten width\
+\
+example\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf5 hilite\cf0  \cf4 of\cf0  \cf4 me\cf0  \cf4 into\cf0  pBool\
+	
+\b \cf3 dispatch
+\b0\fs24 \cf0  \cf2 "mtfSetHorizontalScrollbar"\cf0  \cf4 to\cf0  group "modTableField 1" \cf4 with\cf0  pBool	\
+\
+\
+\
+
+\b\fs26 mtfGetHorizontalScrollbar 
+\b0\fs24 \
+gets status of horizontal scrollbar setting. If true horizontal scrollbar is shown depending on content width, if false it is always hidden\
+\
+example\
+
+\b\fs22 \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetHorizontalScrollbar"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+\
+\
+
+\b\fs26 mtfSetAllColumnsToSameWidth pWidth
+\b0\fs22 \
+sets all columns to the same width\
+pWidth is a positive integer >= 3, the number is the width of columns in pixel\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 70\cf0  \cf4 into\cf0  tWidth\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetAllColumnsToSameWdith"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tWidth\
+	
+\b if
+\b0  \cf4 the\cf0  \cf4 result\cf0  <> \cf2 ""\cf0  
+\b then
+\b0  
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  \cf4 field\cf0  \cf2 1\cf0 \
+\
+the result is empty if successful, contains "error, width has to be a positive integer >= 3" if an error is encountered\
+\
+\
+\
+
+\b\fs26 mtfSetWidthOfOneColumn pColumn, pNewWidth\
+
+\b0\fs22 sets the width of one column. Minimum is 0. (0 does not work well on first column because of vertical dividers of the field)\
+\
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 2\cf0  \cf4 into\cf0  tColumn\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 100\cf0  \cf4 into\cf0  tNewWidth\
+
+\b \cf3 	dispatch
+\b0 \cf0  mtfSetWidthOfOneColumn \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tColumn, tNewWidth\
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0 \
+\
+the result is empty if succesful, contains "error" if an error is encountered\
+\
+\
+\
+
+\b\fs26 mtfSetColumnWidthsToList pList
+\b0\fs22 \
+set the width of columns to the widths in pixel provided by pList, pList is comma delimited. Values have to be integers 0 and larger, missing values are filled up with last value found.\
+If after a reset of modTableField field "fData" is empty then the list will create columns according to the list and also headers. Existing Header names and labels are not overwritten, would have to be set accordingly.\
+\
+example\
+	
+\b \cf3 put
+\b0 \cf0  \cf2 "30,50,30,20,30,100,170,60,30,60,30,60"\cf0  \cf4 into\cf0  tList\
+ 	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetColumnWidthsToList"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tList\
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \
+\
+the result is empty if successful otherwise contains "error, the error"\
+\
+\
+\
+
+\b\fs26 mtfAdjustToWidthOfContent
+\b0\fs22 \
+Adjusts the width of the columns to the width of the content of the columns\
+Currently minimum width 30 pixel, maximum width 150 pixel.\
+\
+example:\
+	
+\b \cf3 dispatch
+\b0 \cf0  "mtfAdjustToWidthOfContent" \cf4 to\cf0  \cf4 group\cf0  \cf2 "modTableField 1"\
+\
+\cf0 Note: LC 7.x.x is a lot slower to adjust to width of columns. Data sets with > 2500 rows will be noticeable slower to respond to mtfAdjustToWidthOfContent\
+\
+\
+
+\b\fs26 mtfSetMaxWidth pWidth
+\b0\fs24 \
+sets max of column when adjusted to width either by script (
+\fs22 mtfAdjustToWidthOfContent
+\fs24 ) of control-click in field\
+\
+example\
+
+\fs22 	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetMaxWidth"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 170
+\fs24 \cf0 \
+\
+the result contains possible error (parameter empty or not a number)\
+\
+
+\b\fs26 mtfGetMaxWidth
+\b0\fs24 \
+gets max of column when adjusted to width either by script (
+\fs22 mtfAdjustToWidthOfContent
+\fs24 ) of control-click in field\
+\
+example\
+
+\fs22 	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetMaxWidth"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result
+\fs24 \cf0 \
+\
+\
+
+\b\fs26 mtfSetMinWidth pWidth
+\b0\fs24 \
+sets min of column when adjusted to width either by script (
+\fs22 mtfAdjustToWidthOfContent
+\fs24 ) of control-click in field\
+\
+example\
+
+\b\fs22 \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfSetMinWidth"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 20
+\fs24 \cf0 \
+\
+the result contains possible error (parameter empty or not a number)\
+\
+
+\b\fs26 mtfGetMinWidth
+\b0\fs24 \
+gets min of column when adjusted to width either by script (
+\fs22 mtfAdjustToWidthOfContent
+\fs24 ) of control-click in field\
+\
+example\
+
+\b\fs22 \cf3 	dispatch
+\b0 \cf0  \cf2 "mtfGetMinWidth"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+	
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result
+\fs24 \cf0 \
+
+\fs22 \
+\cf2 \
+
+\b\fs26 \cf0 mtfGetColumnWidth pColumn
+\b0\fs22 \cf2 \
+\cf0 Gets the columnwidth in pixel	\
+pColumn is the width for a given column number, name or label.\
+if pColumn is out of range a message containing "error" will be returned\cf4 \
+\cf0 \
+example\
+
+\b \cf3 	put
+\b0 \cf0  \cf2 "description"\cf0  \cf4 into\cf0  tColumn\
+
+\b \cf3 	dispatch
+\b0 \cf0  mtfGetColumnWidth \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  tColumn\
+
+\b \cf3 	put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\cf0  \cf4 into\cf0  tTheWidth\
+
+\b 	if
+\b0  tTheWidth \cf4 contains\cf0  \cf2 "error"\cf0  
+\b then\
+
+\b0 	   
+\b \cf6 -- do your error handling\
+\cf0 	else\
+
+\b0 	   
+\b \cf6 -- tTheWidth contains your value\
+\cf0 	end
+\b0  
+\b if
+\b0 \
+\
+\
+
+\b\fs26 mtfSetColumnTextAlign pAlign
+\b0\fs22 \
+
+\b only available in LiveCode 7.0 and higher\
+
+\b0 sets the text alignment of columns (tabAlign)\
+pAlign is a comma delimited list of either: right, center or left, indicating the desired alignment. \
+You must provide alignment information for all the columns up to the one you want to change in a comma delimited list.  If you want to change column 3 to right alignmen you provide "left,left,right" or ",,right" in pAlign. Alignment of additional undefined columns is set to left. \
+Text alignment of columns of the header field is set automatically to the alignment of the columns of the data field. When setting columnar text alignment to "right" in the data field the corresponding header is set to "center" since it will allow the sorting arrow to be seen better.\
+Passing empty as the parameter will reset the columnar text align of data field and header field to default left align.\
+\
+example\
+
+\b 	on
+\b0  mouseUp\
+ 	  
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfSetColumnTextAlign"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "right,center,right,right,left,center"\
+\cf0  	  
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\
+
+\b \cf0 	end
+\b0  mouseUp\
+\
+\
+
+\b\fs26 mtfGetColumnTextAlign
+\b0\fs22 \
+
+\b only available in LiveCode 7.0 and higher
+\b0 \
+gets the text alignments of columns (tabAlign)\
+The result returns the text alignment of columns as far as they have been set. If no text alignment has been set it returns empty and the columns are left aligned (the default)\
+If one column has it's textAlign set a list of all columns and their alignment is returned. \
+\
+example\
+
+\b 	on
+\b0  mouseUp\
+	  
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfGetColumnTextAlign"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \
+ 	  
+\b \cf3 put
+\b0 \cf0  \cf4 the\cf0  \cf4 result\
+
+\b \cf0 	end
+\b0  mouseUp\
+\
+\
+\pard\pardeftab720
+
+\b\fs28 \cf0 \ul Alternating Lines related Commands
+\b0\fs22 \ulnone \
+\
+\pard\pardeftab720
+
+\b\fs26 \cf0 mtfMakeBackGroundPattern
+\b0\fs22 \
+\
+Creates a background pattern/stripes. Uses previous colors, just changes size of background pattern\
+\
+example:\
+ 	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfMakeBackGroundPattern"\cf0   \cf4 to\cf0  \cf4 group\cf0  \cf2 "modTableField 1"\cf4 \
+\cf0 \
+\
+\
+
+\b\fs26 mtfChangeColorFirstLine pWhat
+\b0\fs22 \
+\
+sets the color of the first line of the background pattern, \
+pWhat can be either a question mark "?" or a valid RGB color\
+if pWhat is a question mark then the color picker lets you choose a color\
+otherwise you provide the RGB value\
+\
+example:\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfChangeColorFirstLine"\cf0  \cf4 to\cf0  \cf4 group\cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  "?"\cf2  -- color picker will pop up\cf0 \
+	
+\b \cf3 dispatch
+\b0 \cf0  "\cf2 mtfChangeColorFirstLine"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "255,255,255"	-- white\cf0 \
+\
+\
+\
+
+\b\fs26 mtfChangeColorAlternateLine pWhat
+\b0\fs22 \
+\
+sets the color of the alternate line of the background pattern, \
+pWhat can be either a question mark "?" or a valid RGB color\
+if pWhat is a question mark then the color picker lets you choose a color\
+otherwise you provide the RGB value\
+\
+example:\
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfChangeColorAlternateLine"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "?" -- color picker will pop up\cf0 \
+	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfChangeColorAlternateLine"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1"\cf0  \cf4 with\cf0  \cf2 "237,243,254" -- light blue\cf0 \
+\
+\
+\
+
+\b\fs26 mtfShowAlternatingLines pBool\
+\
+
+\b0\fs22 pBool is either true or false\
+removes or enables the alternating lines pattern/stripes from data field\
+\
+example:\
+ 	
+\b \cf3 dispatch
+\b0 \cf0  \cf2 "mtfShowAlternatingLines"\cf0  \cf4 to\cf0  
+\b \cf3 group
+\b0 \cf0  \cf2 "modTableField 1" \cf4 with\cf2  pBool\
+\cf0 \
+\
+\
+\
+\
+\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 Change history\
+\
+version 0_3_3\
+new functionality\
+\pard\pardeftab720\pardirnatural
+
+\fs24 \cf0 line dragging, optional, lets user alt-click-drag lines to reorder lines\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 \
+\
+new command\
+\pard\pardeftab720
+
+\fs24 \cf0 mtfSetIconToEmpty pColumn -- removes icons from column
+\fs28 \
+
+\fs24 mtfSetOneIcon pColumn, pRow -- sets the icon for a single cell if column has Icons set, e.g an empty cell is now filled and should display an icon as the rest of the column\
+mtfAllowLineDragging pBool -- allows user to alt-click-drag lines to reorder them\
+mtfGetAllowLineDragging -- gets true or false\
+mtfSetMaxWidth -- sets max of column when adjusted to width either by script of control-click in field\
+mtfGetMaxWidth -- gets max of column when adjusted to width either by script of control-click in field\
+mtfSetMinWidth -- sets min of column when adjusted to width either by script of control-click in field\
+mtfGetMinWidth -- gets min of column when adjusted to width either by script of control-click in field
+\fs22 \
+\pard\pardeftab720
+
+\fs28 \cf0 \
+\pard\pardeftab720\pardirnatural
+\cf0 new message\
+\pard\pardeftab720
+
+\fs24 \cf0 mtfDoubleClickInEditableCell pColumnClicked, pLineClicked, pItemContent, tOwnerName -- sent when a user double-clicks in an editable cell, useful to present a popUp-list on the fly
+\fs28 \
+
+\fs24 mtfMouseDownRight  pColumnClicked, pRowClicked, tCellContent, pGroupName, pCellRect -- sent when user right-clicks in data\
+mtfLineWasDragged pFromWhere, pToWhere, pLongGroupName -- sent after a line was dragged\
+\pard\pardeftab720\pardirnatural
+\cf0 \
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 changed command
+\fs24 \
+\pard\pardeftab720
+\cf0 mtfDataItemClicked pItemClicked, pLineClicked, pItemContent, pGroupName, pButtonNo, pRect -- added pButtonNo and pRect = rect of cell\
+mtfSetIcons pColumn, pNullName, pOneName -- setting icons on a column that has more than either false/true or 0/1 results in prepending the cell with 0 and a space. mtfSetIconToEmpty will remove these additions to the data.\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 \
+\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 other changes
+\fs24 \
+fixed referencing of icons if image is not in same stack, uses "resolve image". Hence minimum versionn of LC is 6.5\
+some fixes to HelperStack, icons now settable via modTableField_Helper.\
+fixed setting of editable in columns of Helper stack.\
+fixed the column display in Helper stack when last column width was 0\
+reworked icon choosing in Helper stack.\
+clicking in a header to sort will now always sort ascending when clicking the first time, previously it was the inverse sort from a previous sort on a different column.\
+changed resizeControl handler to avoid misplaced hidden controls, hide button "activeLabel" on resizeControl and added setting a lockLoc when doing a sort since that would show btn "activeLabel" if sorting is allowed and could change\
+bounds of group mtf if lockLoc is false after manual resizing.\
+\
+
+\fs28 \
+\
+version 0_3_2\
+new functionality\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 custom sort\
+use of Icons = images set as imageSource\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 \
+new command\
+\pard\pardeftab720\pardirnatural
+
+\fs24 \cf0 mtfSetIcons pColumn, pNullName, pOneName -- set an icon for the whole column\
+\pard\pardeftab720
+\cf0 mtfSetIconToState pColumn, pRow, pState -- set the state of an icon by script\
+mtfGetIconState pColumn, pRow -- returns state of the icon, 0 or 1, (= false or true)\
+mtfSetDisabledIconSwitch pColumn -- excludes a column from user double-Click into Icon cell to toggle Icon\
+mtfGetDisabledIconSwitch -- gets a comma delimited list of columns that are excluded from user double-Click into Icon cell to toggle Icon\
+mtfSortList pColumn, pLIst, pWhichWay -- sorts in the sequence of items provided in pList, overrides other sorting settings for column\
+mtfSetColumnWidthsToList pList -- sets widths of columns to comma delimited list of widths in pixel.\
+mtfLoadRawData pData -- loads data without checking data integrity, mainly to speed up loading in LC 7.x.x for large data sets\
+mtfAppendRawData pData -- appends data without checking data integrity, mainly to speed up loading in LC 7.x.x for large data sets\
+mtfSetVerticalScrollbar pBool -- if false the vertical scrollbar is hidden all times\
+mtfGetVerticalScrollbar -- boolean to indicate if vertical scrollbar is hidden (false)  or not (true)\
+mtfSetHorizontalScrollbar pBool -- if false horizontal scrollbar is hidden allways, regardless of content of data field\
+mtfGetHorizontalScrollbar -- gets status of horizontal scrollbar setting. If true horizontal scrollbar is shown depending on content width, if false it is always hidden\
+mtfSetIncludeColumnsForEditing -- includes previously excluded columns for editing\
+\
+\
+\
+\pard\pardeftab720\pardirnatural
+\cf0 \
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 new message\
+\pard\pardeftab720
+
+\fs24 \cf0 mtfIconChanged pColumnClicked, pRowClicked, pItemContent, pGroup  -- sent when user double-clicks an image in cell that is set as imageSource\
+mtfCustomSort pColumn, pShortField, pGroupID, pWhichWay -- sent when sort type is set to "custom" so user can process sorting\
+mtfDataItemDoubleClicked pColumnClicked, pLineClicked, pCellContent, pGroupLongName -- only sent when allowEditing is false\
+mtfDataLineDoubleClicked pColumnClicked, pLineClicked, tLineContent, pGroupLongName -- only sent when allowEditing is false\
+\pard\pardeftab720\pardirnatural
+\cf0 \
+changed command\
+mtfSetSortType now accepts "none" as a way to exclude a column from sorting\
+\pard\pardeftab720
+
+\b\fs26 \cf0 mtfExcludeColumnsFromEditing  was changed to mtfSetExcludeColumnsFromEditing
+\b0\fs24  for consitency reasons\
+\pard\pardeftab720\pardirnatural
+\cf0 \
+\
+other changes\
+regression for resetting mtf in LC7 fixed\
+regression for hiding header and resizeControl fixed\
+changed setting mtfSetSortType to incremental, i.e. a new sortType does not overwrite existing sortTypes for other columns\
+fixed typing error in mtfSetAllColumnsToSameWidth, was mtfSetAllColumnsToSameWdith\
+mtfHelper lets you set the color of the dividers of data field and header field.\
+fixed error in parameters for sort types. (systemDate) Thanks Terry.\
+fixed number of columns in header when only data is loaded when header is empty\
+fixed problem with triangle images if more than one mTF is placed on one card\
+\
+\
+known issues\
+tabAlign not persistent when saving field, Bug 14715, current workaround used by mTF is to set it at preOpenControl and newGroup\
+alternating lines out of sync when many lines in data field. Bug 14238\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 version 0_3_1\
+new functionality\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 arrow keys now let you navigate the data field\
+up and left move the selection up\
+right and down move the selection down\
+(this triggers a "\cf2 mtfArrowKeyChangedLine pLine"\cf0  message)\
+\
+mtfLoadData now checks for maximum of tabs per line and fills up tabs in lines that have less than maximum tabs\
+if more header items are defined than maximum items of data mtfLoadData will fill data with tab up to the header items\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 \
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 when leaving card and returning hilitedLine and vScroll of data field is restored\
+\
+\
+new command\
+mtfGetLine pLIne -- returns data of pLine in the result\
+\pard\pardeftab720
+\cf0 mtfMoveHilitedLine pPrevNext -- moves hilitedLine to previous or next line\
+mtfGetVersion -- returns the version of the modTableField\
+mtfGetColNo pName -- returns the column number for a given header name\
+mtfGetNumberOfLines -- returns the number of lines of data field\
+\pard\pardeftab720\pardirnatural
+\cf0 \
+new message\
+\pard\pardeftab720
+\cf0 mtfUserChangedHilitedLine pLine -- send when user navigates with arrowKey in data part, pLIne is the new line number\
+	also triggered by mtfMoveHilitedLine
+\fs26 \
+\pard\pardeftab720\pardirnatural
+\cf0 \
+\
+other changes\
+fixed broken graphic for backgroundPattern\
+fixed some referencing that was out of sync with rewrite in 0.2.8 \
+\
+known issues\
+background pattern of field will be slightly off if formattedHeight > 64000, bug 14238\
+\
+\
+version 0_3_0\
+new functionality\
+\
+new command\
+\pard\pardeftab720
+
+\fs22 \cf0 mtfGetHeaderAndData -- returns tab delimited Header on line 1 and Data on line 2 to end
+\fs26 \
+\pard\pardeftab720\pardirnatural
+\cf0 \
+changed command\
+\
+other changes\
+fixed regression introduced in 0_2_9 with incomplete referencing field \'84fData" (thanks Jerry)\
+\
+known issues\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 \
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 \
+version 0_2_9\
+new functionality\
+\
+support for Livecode version 7.0 has been added and support for left, center and right alignment has been added. (only when using LC 7.0)\
+support for Livecode version pre 5.5 has been dropped\
+the width of a column can be 0, effectively hiding the column\
+navigation of cell Editor by arrowKey or tab key skips hidden columns.\
+\
+new command\
+\pard\pardeftab720
+
+\fs22 \cf0 mtfSetColumnTextAlign pAlign\
+only available in LiveCode 7.0 and higher\
+sets the text alignment of columns (tabAlign)\
+\
+mtfGetColumnTextAlign\
+only available in LiveCode 7.0 and higher\
+gets the text alignments of columns (tabAlign)
+\fs26 \
+\pard\pardeftab720\pardirnatural
+\cf0 \
+changed command\
+\pard\pardeftab720
+
+\fs22 \cf0 mtfSetWidthOfOneColumn accepts now 0 as column width (minimum was 1 before)
+\fs26 \
+\pard\pardeftab720\pardirnatural
+\cf0 \
+other changes\
+when resizing manually the sort goes to column 1 to make resizing easier\
+\
+known issues\
+column 1 can be set to zero width but parts of the field will still show (Livecode)\
+introduced a bug when counting items in determining how many items the field has.\
+\
+version 0_2_8\
+new functionality\
+\
+new command\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 mtfGetSortType -- list of sortTypes\
+\pard\pardeftab720
+\cf0 mtfSetWidthOfOneColumn -- sets width of one column\
+mtfGetExcludedFromEditing -- returns list of columns excluded from editing\
+\pard\pardeftab720
+
+\fs26 \cf0 \
+\pard\pardeftab720\pardirnatural
+\cf0 \
+changed command\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 mtfSetSortType now returns an error if a non-standard sort type is among the items in the result. The faulty item is indicated. Check result for "error".\
+Empty items are filled with "text" now as default.\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 other changes\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 when setting headers on an empty modifiedTableField appropriate dividers (tabs) are now generated.\
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 \
+version 0_2_7\
+new functionality\
+\
+new command\
+\pard\pardeftab720
+
+\fs22 \cf0 mtfGetPopUpList pColumn -- gets a the list of the popUp list, if one is set for a column\
+mtfGetColumnWidth pColumn -- gets column width in pixel\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 \
+version 0_2_6\
+new functionality\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 A search in popUp lists now narrows down displayed lines to those that have a partial match, escape key and command-z restores initial list and clears search string. Backspace deletes last character from search string. 
+\fs26 \
+\
+new command\
+\
+version 0_2_5\
+\
+new functionality\
+
+\fs22 When editing manually a cell escape key or command-z restores original content of cell\
+popUp lists for date entry.\
+\
+new command\
+\pard\pardeftab720
+\cf0 mtfGetCell pColumn, pLine -- gets content of a cell\
+mtfSortColumn pColumn, pSortType, pUpDown -- sorts a column by script\
+mtfAddEmptyLine -- adds an empty line to existing data\
+mtfSetPopUpList pColumn, pList\
+mtfExcludeColumnsFromEditing, pItemList -- exclude columns from manual editing.\
+\pard\pardeftab720\pardirnatural
+\cf0 \
+\
+bug fixes\
+tweaked mtfResetModTableField (emptying custom properties)\
+tweaked mtfSetAllColumnsToSameWdith (last tabstop was incorrectly set)\
+\
+\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 version 0_2_4\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 added modTableField_Helper\
+helps to configure a modTableField\
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 \
+new command\
+\pard\pardeftab720
+
+\fs22 \cf0 mtfShowAlternatingLines pBool -- turns alternating lines on and off\
+this deprecates mtfTurnStripesOn and mtfTurnStripesOn\
+\
+fixed "alt-drag first divider" to set all columns to the same width for LC 6, handling of tabstops changed a little.
+\fs26 \
+\pard\pardeftab720\pardirnatural
+\cf0 \
+\
+\
+\pard\pardeftab720
+\cf0 version 0_2_3\
+\
+\pard\pardeftab720
+
+\fs22 \cf0 tweaked editor code\
+tweaked resize code\
+borderwidth of header and data field now 1\
+\
+new command\
+mtfAllowColumnResizing pBool -- if false disables manual resizing of column width also disables command-click into data field to adjust column width\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 \
+version 0_2_2 \
+\
+\pard\pardeftab720\pardirnatural
+\cf7 All messages and commands now start with mtf (= modified table field)\cf0 \
+\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 Cells are now editable. Double-clicking on a cell opens a field = Editor which contains the content of the cell as default. This text is editable. Clicking outside of the field, hitting return or enter saves text changes to the cell. \
+Tab key saves changes to the cell and goes to next cell to the right for editing. Shift-tab goes to previous cell.\
+Alt-arrow Key navigates the Editor field around, changed text is saved.\
+(the same for shift-arrow key) \
+changed content of a cell triggers a mtfDataWasChangedByUser message.\
+\pard\pardeftab720\pardirnatural
+
+\fs28 \cf0 \
+\pard\pardeftab720\pardirnatural
+
+\fs24 \cf0 new message
+\fs28 \
+\pard\pardeftab720
+
+\fs22 \cf0 mtfDataWasChangedByUser -- sent when user edited a cell manually and changed content via Editor\
+\
+new commands\
+mtfAllowCellEditing pBool -- toggles cell editing\
+mtfSetHeaderTextSize -- sets text size of Header field\
+mtfSetHeaderHeight -- sets height of Header field\
+mtfSetTextFontHeaderField -- set font of Header field\
+\
+\pard\pardeftab720\qc
+
+\fs28 \cf0 \
+\
+\pard\pardeftab720\pardirnatural
+\cf0 version 0_2_1\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs22 \cf0 new commands:\
+\pard\pardeftab720
+\cf0 mTFsetCell -- set data of specific cell\
+loadHeaderLabels -- set labels for headers, labels are a secondary identifier of a column that are not shown\
+getHeaderLabels -- get header labels\
+getHeaderNames -- gets the names of the columns as shown in the header field
+\fs28 \
+
+\fs22 mTFShowHeader
+\b\fs26   --
+\b0\fs22 option to hide header\
+mTFGetData -- get data of table field\
+loadHeaderLabels -- load a list of labels additionally to header names\
+mTFGetColumn -- get content of one or more entire column in any order\
+mTFsetAllColumnsToSameWdith -- sets width of all columns to the same value\
+setTextFontDataField -- sets font of data field\
+HeaderItemClicked -- used to be labelItemClicked. The message is sent when user clicks in header, can be used to start action.\
+\
+deleted:\
+labelItemClicked -- now replaced by headerItemClicked, to avoid confusion since labes can now be set additionally to names of columns\
+\
+\
+group initializes itself when copied, uses "newGroup" message, no more need to initialize as an extra step\
+horizontal scroll is now set to old value when returning to the card, "preOpenControl" does the trick. Before Livcode resetted horizontal scroll to 0.\
+\pard\pardeftab720\pardirnatural
+\cf0 horizontal scrollbar now off if the width of content of field is smaller than width of field\
+\pard\pardeftab720
+\cf0 empty header is filled with tabs if data field is not empty to enable scrolling of header\
+\
+\pard\pardeftab720\pardirnatural
+
+\fs26 \cf0 version 0_2_0
+\fs22 \
+\
+manual resizing of group now  more robust, still has to be relocked after manual change.\
+top of button activeLabel is now set in resizeControl (+3 from top of group)\
+}
